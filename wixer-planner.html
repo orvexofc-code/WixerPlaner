@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WIXER — Planejador de Conteúdo</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #080808;
+    --gray-dark: #111111;
+    --gray-mid: #1a1a1a;
+    --gray-border: #2a2a2a;
+    --orange: #FF5C00;
+    --orange-dim: #cc4900;
+    --white: #f0ede8;
+    --white-dim: #888;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--gray-border);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 4px;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo span {
+    color: var(--orange);
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    background: var(--orange);
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.3); }
+  }
+
+  .header-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--white-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    z-index: 5;
+    padding: 80px 48px 60px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .hero-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--orange);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hero-label::before {
+    content: '';
+    display: inline-block;
+    width: 30px;
+    height: 1px;
+    background: var(--orange);
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4rem, 10vw, 9rem);
+    line-height: 0.92;
+    letter-spacing: 2px;
+    margin-bottom: 32px;
+  }
+
+  h1 .accent { color: var(--orange); }
+
+  .hero-sub {
+    font-size: 1rem;
+    color: var(--white-dim);
+    max-width: 480px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* TABS */
+  .tabs-wrapper {
+    position: relative;
+    z-index: 5;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 48px 80px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--gray-border);
+    padding-bottom: 0;
+  }
+
+  .tab-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white-dim);
+    background: none;
+    border: none;
+    padding: 14px 24px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+  }
+
+  .tab-btn::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 2px;
+    background: var(--orange);
+    transform: scaleX(0);
+    transition: transform 0.25s;
+  }
+
+  .tab-btn.active { color: var(--white); }
+  .tab-btn.active::after { transform: scaleX(1); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* CARDS GRID */
+  .month-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 6px;
+    color: var(--orange);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    margin-top: 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .month-header:first-child { margin-top: 0; }
+
+  .month-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--gray-border);
+  }
+
+  .week-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    color: var(--white-dim);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    margin-top: 28px;
+  }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .post-card {
+    background: var(--gray-dark);
+    border: 1px solid var(--gray-border);
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: pointer;
+    animation: cardIn 0.4s both;
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .post-card:hover {
+    border-color: var(--orange);
+    transform: translateY(-2px);
+  }
+
+  .post-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--orange);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform 0.25s;
+  }
+
+  .post-card:hover::before { transform: scaleY(1); }
+
+  .card-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--white-dim);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .card-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem;
+    line-height: 1;
+    letter-spacing: 2px;
+    color: var(--white);
+    margin-bottom: 16px;
+  }
+
+  .card-headline .hl { color: var(--orange); }
+
+  .card-body {
+    font-size: 0.82rem;
+    color: #aaa;
+    line-height: 1.7;
+    white-space: pre-line;
+    font-weight: 300;
+  }
+
+  .card-cta {
+    display: inline-block;
+    margin-top: 18px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--orange);
+    border: 1px solid var(--orange);
+    padding: 6px 14px;
+  }
+
+  .card-type {
+    position: absolute;
+    top: 20px; right: 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 2px;
+    color: var(--white-dim);
+    text-transform: uppercase;
+  }
+
+  /* AI GENERATOR */
+  .ai-section {
+    background: var(--gray-dark);
+    border: 1px solid var(--gray-border);
+    padding: 40px;
+  }
+
+  .ai-section h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+
+  .ai-section h2 span { color: var(--orange); }
+
+  .ai-desc {
+    font-size: 0.85rem;
+    color: var(--white-dim);
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 700px) {
+    .form-row { grid-template-columns: 1fr; }
+    header { padding: 20px 24px; }
+    .hero, .tabs-wrapper { padding-left: 24px; padding-right: 24px; }
+    .tabs { overflow-x: auto; }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-group label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white-dim);
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    background: var(--black);
+    border: 1px solid var(--gray-border);
+    color: var(--white);
+    padding: 12px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: var(--orange);
+  }
+
+  .form-group select option { background: var(--black); }
+
+  .prompt-area {
+    width: 100%;
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  .btn-generate {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 24px;
+    background: var(--orange);
+    color: var(--black);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 3px;
+    border: none;
+    padding: 16px 36px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .btn-generate:hover { background: #ff7a2e; }
+  .btn-generate:active { transform: scale(0.98); }
+  .btn-generate:disabled { background: var(--gray-border); color: var(--white-dim); cursor: not-allowed; }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(0,0,0,0.3);
+    border-top-color: var(--black);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .ai-output {
+    margin-top: 32px;
+    display: none;
+  }
+
+  .ai-output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .ai-output-header h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 3px;
+    color: var(--orange);
+  }
+
+  .btn-download {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white);
+    background: none;
+    border: 1px solid var(--gray-border);
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .btn-download:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* JSON IMPORT */
+  .import-section {
+    background: var(--gray-dark);
+    border: 1px solid var(--gray-border);
+    padding: 40px;
+  }
+
+  .import-section h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+
+  .import-section h2 span { color: var(--orange); }
+
+  .import-desc {
+    font-size: 0.85rem;
+    color: var(--white-dim);
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  .dropzone {
+    border: 2px dashed var(--gray-border);
+    padding: 60px 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--orange);
+    background: rgba(255, 92, 0, 0.03);
+  }
+
+  .dropzone input[type=file] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer;
+    width: 100%; height: 100%;
+  }
+
+  .dropzone-icon {
+    font-size: 2.5rem;
+    margin-bottom: 16px;
+  }
+
+  .dropzone p {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--white-dim);
+  }
+
+  .dropzone p span { color: var(--orange); }
+
+  .import-status {
+    margin-top: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    color: var(--white-dim);
+    min-height: 20px;
+  }
+
+  .import-status.success { color: #4ade80; }
+  .import-status.error { color: #f87171; }
+
+  /* PROMPT HELPER */
+  .prompt-section {
+    background: var(--gray-dark);
+    border: 1px solid var(--gray-border);
+    padding: 40px;
+    margin-bottom: 32px;
+  }
+
+  .prompt-section h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+
+  .prompt-section h2 span { color: var(--orange); }
+
+  .prompt-copy-box {
+    background: var(--black);
+    border: 1px solid var(--gray-border);
+    padding: 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    line-height: 1.8;
+    color: #ccc;
+    white-space: pre-wrap;
+    position: relative;
+    margin-top: 24px;
+  }
+
+  .btn-copy {
+    position: absolute;
+    top: 16px; right: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--orange);
+    background: none;
+    border: 1px solid var(--orange);
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-copy:hover { background: rgba(255,92,0,0.1); }
+
+  .json-schema {
+    background: var(--black);
+    border: 1px solid var(--gray-border);
+    padding: 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.8;
+    color: #aaa;
+    margin-top: 16px;
+    overflow-x: auto;
+  }
+
+  .json-key { color: var(--orange); }
+  .json-str { color: #7dd3fc; }
+  .json-num { color: #86efac; }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 5;
+    padding: 32px 48px;
+    border-top: 1px solid var(--gray-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 4px;
+    color: var(--white-dim);
+  }
+
+  .footer-logo span { color: var(--orange); }
+
+  .footer-note {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+    color: #444;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--gray-dark);
+    border: 1px solid var(--orange);
+    max-width: 520px;
+    width: 100%;
+    padding: 40px;
+    position: relative;
+    animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .modal-close {
+    position: absolute; top: 16px; right: 20px;
+    background: none; border: none;
+    color: var(--white-dim); font-size: 1.4rem;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .modal-close:hover { color: var(--orange); }
+
+  .modal-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    line-height: 1;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+
+  .modal-type {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: var(--orange);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .modal-body {
+    font-size: 0.9rem;
+    color: #bbb;
+    line-height: 1.75;
+    white-space: pre-line;
+    margin-bottom: 20px;
+    border-top: 1px solid var(--gray-border);
+    padding-top: 20px;
+  }
+
+  .modal-cta {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--black);
+    background: var(--orange);
+    padding: 10px 24px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--black); }
+  ::-webkit-scrollbar-thumb { background: var(--gray-border); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--orange); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">WI<span>X</span>ER <span class="logo-dot"></span></div>
+  <div class="header-tag">// PLANEJADOR DE CONTEÚDO — V1.0</div>
+</header>
+
+<section class="hero">
+  <div class="hero-label">Sistema de Conteúdo Mensal</div>
+  <h1>CONTEÚDO<br>QUE <span class="accent">VENDE</span></h1>
+  <p class="hero-sub">Planeje, gere e exporte seus posts mensais com identidade visual definida. Marketing que não gera cliente é decoração.</p>
+</section>
+
+<div class="tabs-wrapper">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('posts', this)">Posts do Mês</button>
+    <button class="tab-btn" onclick="switchTab('generator', this)">Gerar com IA</button>
+    <button class="tab-btn" onclick="switchTab('import', this)">Importar JSON</button>
+    <button class="tab-btn" onclick="switchTab('prompt', this)">Prompt Base</button>
+  </div>
+
+  <!-- TAB: POSTS -->
+  <div class="tab-panel active" id="tab-posts">
+    <div id="posts-container"></div>
+  </div>
+
+  <!-- TAB: GENERATOR -->
+  <div class="tab-panel" id="tab-generator">
+    <div class="ai-section">
+      <h2>GERAR CONTEÚDO COM <span>IA</span></h2>
+      <p class="ai-desc">Preencha as informações da agência e gere um planejamento mensal completo de 12 posts. O resultado é exportado como JSON para reutilização.</p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome da Agência / Empresa</label>
+          <input type="text" id="g-agency" placeholder="Ex: Wixer" value="Wixer">
+        </div>
+        <div class="form-group">
+          <label>Nicho / Segmento</label>
+          <input type="text" id="g-niche" placeholder="Ex: Marketing Digital">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tom de Voz</label>
+          <select id="g-tone">
+            <option value="direto e provocativo">Direto e Provocativo</option>
+            <option value="educativo e confiante">Educativo e Confiante</option>
+            <option value="inspirador e estratégico">Inspirador e Estratégico</option>
+            <option value="agressivo e vendedor">Agressivo e Vendedor</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Mês de Referência</label>
+          <input type="text" id="g-month" placeholder="Ex: Maio 2025">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Contexto Adicional (opcional)</label>
+        <textarea class="prompt-area" id="g-context" placeholder="Ex: Focados em pequenas e médias empresas, produto principal é gestão de redes sociais + tráfego pago..."></textarea>
+      </div>
+
+      <button class="btn-generate" id="btn-gen" onclick="generateContent()">
+        <span id="gen-text">⚡ GERAR PLANEJAMENTO</span>
+        <div class="spinner" id="gen-spinner"></div>
+      </button>
+
+      <div class="ai-output" id="ai-output">
+        <div class="ai-output-header">
+          <h3>PLANEJAMENTO GERADO</h3>
+          <button class="btn-download" onclick="downloadGeneratedJSON()">
+            ↓ BAIXAR JSON
+          </button>
+        </div>
+        <div id="ai-cards-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: IMPORT -->
+  <div class="tab-panel" id="tab-import">
+    <div class="import-section">
+      <h2>IMPORTAR <span>JSON</span></h2>
+      <p class="import-desc">Suba um arquivo JSON gerado pela IA (ou manualmente) para visualizar e navegar pelo planejamento mensal de conteúdo.</p>
+
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="json-file-input" accept=".json" onchange="handleFileImport(event)">
+        <div class="dropzone-icon">📂</div>
+        <p>Arraste o arquivo <span>.JSON</span> aqui</p>
+        <p style="margin-top:8px; font-size:0.55rem;">ou clique para selecionar</p>
+      </div>
+
+      <div class="import-status" id="import-status"></div>
+    </div>
+  </div>
+
+  <!-- TAB: PROMPT -->
+  <div class="tab-panel" id="tab-prompt">
+    <div class="prompt-section">
+      <h2>PROMPT <span>BASE</span></h2>
+      <p class="import-desc" style="margin-bottom:0">Use este prompt no ChatGPT, Gemini ou Claude para gerar seu planejamento mensal. Cole o resultado no campo "Importar JSON".</p>
+
+      <div class="prompt-copy-box" id="prompt-box">Você é um estrategista de conteúdo para redes sociais especializado em agências de marketing digital.
+
+Gere um planejamento mensal completo com 12 posts para a agência [NOME DA AGÊNCIA] que atua no segmento de [NICHO].
+
+Tom de voz: [TOM DE VOZ]
+Mês de referência: [MÊS/ANO]
+Contexto adicional: [CONTEXTO]
+
+O planejamento deve seguir esta estrutura de 4 semanas:
+- Semana 1: Posicionamento + Retorno (3 posts)
+- Semana 2: Educação + Quebra de objeção (3 posts)
+- Semana 3: Prova + Desejo (3 posts)
+- Semana 4: Conversão direta (3 posts)
+
+RESPONDA APENAS com um JSON válido, sem texto antes ou depois, sem blocos de código markdown, seguindo EXATAMENTE este formato:
+
+{
+  "agency": "Nome da Agência",
+  "month": "Mês Ano",
+  "generated_at": "2025-01-01",
+  "posts": [
+    {
+      "id": 1,
+      "week": 1,
+      "week_theme": "Posicionamento + Retorno",
+      "type": "Retorno",
+      "headline": "PALAVRA ÚNICA EM CAPS",
+      "body": "Texto do post com quebras de linha.\n\nParágrafo 2.",
+      "cta": "Texto do CTA"
+    }
+  ]
+}<button class="btn-copy" onclick="copyPrompt()">COPIAR</button></div>
+
+      <div style="margin-top:32px">
+        <div class="week-label">Estrutura JSON Esperada</div>
+        <div class="json-schema">
+<span class="json-key">{</span>
+  <span class="json-key">"agency"</span>: <span class="json-str">"Wixer"</span>,
+  <span class="json-key">"month"</span>: <span class="json-str">"Maio 2025"</span>,
+  <span class="json-key">"generated_at"</span>: <span class="json-str">"2025-05-01"</span>,
+  <span class="json-key">"posts"</span>: [
+    <span class="json-key">{</span>
+      <span class="json-key">"id"</span>: <span class="json-num">1</span>,
+      <span class="json-key">"week"</span>: <span class="json-num">1</span>,
+      <span class="json-key">"week_theme"</span>: <span class="json-str">"Posicionamento + Retorno"</span>,
+      <span class="json-key">"type"</span>: <span class="json-str">"Retorno"</span>,
+      <span class="json-key">"headline"</span>: <span class="json-str">"RECOMEÇO"</span>,
+      <span class="json-key">"body"</span>: <span class="json-str">"Texto do post..."</span>,
+      <span class="json-key">"cta"</span>: <span class="json-str">"Me chama no direct."</span>
+    <span class="json-key">}</span>
+  ]
+<span class="json-key">}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">WI<span>X</span>ER</div>
+  <div class="footer-note">SISTEMA DE CONTEÚDO // BUILT FOR RESULTS</div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">×</button>
+    <div class="modal-type" id="modal-type"></div>
+    <div class="modal-headline" id="modal-headline"></div>
+    <div class="modal-body" id="modal-body"></div>
+    <span class="modal-cta" id="modal-cta"></span>
+  </div>
+</div>
+
+<script>
+// ── DEFAULT DATA (Wixer Month 1) ──────────────────────────────────────────────
+const defaultData = {
+  agency: "Wixer",
+  month: "Mês 1",
+  generated_at: new Date().toISOString().split('T')[0],
+  posts: [
+    { id:1, week:1, week_theme:"Posicionamento + Retorno", type:"Retorno", headline:"RECOMEÇO", body:"A gente sumiu… mas foi por um bom motivo.\n\nFicamos um tempo ajustando o que realmente importa:\nresultado, estratégia e posicionamento.\n\nAgora a agência voltou diferente.\nMais estruturada e focada em gerar cliente de verdade.", cta:"Me chama no direct." },
+    { id:2, week:1, week_theme:"Posicionamento + Retorno", type:"Autoridade", headline:"RESULTADO", body:"Marketing bonito não paga boleto.\n\nSe não traz cliente, não é marketing.\nÉ decoração.", cta:"Quer mudar isso?" },
+    { id:3, week:1, week_theme:"Posicionamento + Retorno", type:"Dor", headline:"TRAVADO", body:"Seu negócio não cresce… e o problema pode ser esse.\n\nPostar sem estratégia não escala.\nSó ocupa tempo.", cta:"Bora ajustar isso?" },
+    { id:4, week:2, week_theme:"Educação + Quebra", type:"Educativo", headline:"ERRO", body:"3 coisas que fazem seu Instagram não vender:\n\n1. Postar sem objetivo\n2. Ignorar tráfego pago\n3. Não ter CTA", cta:"Quer corrigir isso?" },
+    { id:5, week:2, week_theme:"Educação + Quebra", type:"Método", headline:"PROCESSO", body:"Não é sorte. É estratégia.\n\n→ Conteúdo\n→ Tráfego\n→ Conversão", cta:"Quer aplicar isso?" },
+    { id:6, week:2, week_theme:"Educação + Quebra", type:"Bastidor", headline:"REALIDADE", body:"O que ninguém te conta sobre marketing:\n\nNão é só postar.\nÉ testar, ajustar e otimizar.", cta:"Quer alguém fazendo isso por você?" },
+    { id:7, week:3, week_theme:"Prova + Desejo", type:"Antes/Depois", headline:"EVOLUÇÃO", body:"Antes: perfil parado\nDepois: cliente chegando\n\nIsso é estratégia aplicada.", cta:"Quer esse resultado?" },
+    { id:8, week:3, week_theme:"Prova + Desejo", type:"Objeção", headline:"MITO", body:"\"Tráfego pago não funciona\"\n\nFunciona.\nO problema é fazer errado.", cta:"Quer rodar do jeito certo?" },
+    { id:9, week:3, week_theme:"Prova + Desejo", type:"Análise", headline:"DIAGNÓSTICO", body:"Se eu pegasse seu negócio hoje…\n\nEssas seriam as primeiras mudanças:\nposicionamento, conteúdo e tráfego.", cta:"Quer que eu analise?" },
+    { id:10, week:4, week_theme:"Conversão", type:"Direto", headline:"DECISÃO", body:"Seu concorrente já tá investindo.\n\nE você?", cta:"Bora virar esse jogo?" },
+    { id:11, week:4, week_theme:"Conversão", type:"Urgência", headline:"AGORA", body:"Quem aparece mais, vende mais.\n\nSimples assim.", cta:"Quer começar hoje?" },
+    { id:12, week:4, week_theme:"Conversão", type:"Fechamento", headline:"VIRADA", body:"Se nada mudou esse mês…\n\nNão foi falta de tempo.\nFoi falta de estratégia.", cta:"Mês que vem pode ser diferente." }
+  ]
+};
+
+let currentData = defaultData;
+let generatedData = null;
+
+// ── RENDER POSTS ──────────────────────────────────────────────────────────────
+function renderPosts(data, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const grouped = {};
+  data.posts.forEach(p => {
+    const key = `${p.week}||${p.week_theme}`;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(p);
+  });
+
+  let html = `<div class="month-header">${data.agency} — ${data.month}</div>`;
+
+  Object.entries(grouped).forEach(([key, posts]) => {
+    const [week, theme] = key.split('||');
+    html += `<div class="week-label">SEMANA ${week} — ${theme}</div>`;
+    html += `<div class="cards-grid">`;
+    posts.forEach((p, i) => {
+      html += `
+        <div class="post-card" onclick="openModal(${JSON.stringify(p).replace(/"/g,'&quot;')})" style="animation-delay:${i*0.05}s">
+          <div class="card-type">${p.type}</div>
+          <div class="card-number">POST ${String(p.id).padStart(2,'0')} / ${String(data.posts.length).padStart(2,'0')}</div>
+          <div class="card-headline">${p.headline}</div>
+          <div class="card-body">${p.body.length > 120 ? p.body.substring(0,120)+'…' : p.body}</div>
+          <span class="card-cta">${p.cta}</span>
+        </div>`;
+    });
+    html += `</div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openModal(post) {
+  document.getElementById('modal-type').textContent = `SEMANA ${post.week} · ${post.type}`;
+  document.getElementById('modal-headline').textContent = post.headline;
+  document.getElementById('modal-body').textContent = post.body;
+  document.getElementById('modal-cta').textContent = post.cta;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('open');
+  }
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── AI GENERATOR ──────────────────────────────────────────────────────────────
+async function generateContent() {
+  const agency  = document.getElementById('g-agency').value.trim() || 'Wixer';
+  const niche   = document.getElementById('g-niche').value.trim() || 'Marketing Digital';
+  const tone    = document.getElementById('g-tone').value;
+  const month   = document.getElementById('g-month').value.trim() || 'Este mês';
+  const context = document.getElementById('g-context').value.trim();
+
+  const btn = document.getElementById('btn-gen');
+  const spinner = document.getElementById('gen-spinner');
+  const genText = document.getElementById('gen-text');
+
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  genText.textContent = 'GERANDO...';
+
+  const prompt = `Você é um estrategista de conteúdo para redes sociais especializado em agências de marketing digital.
+
+Gere um planejamento mensal completo com 12 posts para a agência "${agency}" que atua em "${niche}".
+Tom de voz: ${tone}
+Mês de referência: ${month}
+${context ? 'Contexto adicional: ' + context : ''}
+
+O planejamento segue esta estrutura:
+- Semana 1 (posts 1-3): Posicionamento + Retorno
+- Semana 2 (posts 4-6): Educação + Quebra de objeção
+- Semana 3 (posts 7-9): Prova Social + Desejo
+- Semana 4 (posts 10-12): Conversão direta
+
+Responda APENAS com JSON válido, sem markdown, seguindo este schema exato:
+{"agency":"string","month":"string","generated_at":"YYYY-MM-DD","posts":[{"id":1,"week":1,"week_theme":"string","type":"string","headline":"PALAVRA ÚNICA CAPS","body":"texto com \\n\\n para parágrafos","cta":"texto do cta"}]}`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 3000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const rawText = data.content.map(c => c.text || '').join('');
+    const clean = rawText.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    generatedData = parsed;
+    renderPosts(parsed, 'ai-cards-output');
+    document.getElementById('ai-output').style.display = 'block';
+
+  } catch(err) {
+    document.getElementById('ai-cards-output').innerHTML = `<div style="color:#f87171;font-family:'Space Mono',monospace;font-size:0.75rem;padding:20px;border:1px solid #f87171;">ERRO: ${err.message || 'Falha na geração. Verifique o console.'}</div>`;
+    document.getElementById('ai-output').style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    genText.textContent = '⚡ GERAR PLANEJAMENTO';
+  }
+}
+
+// ── DOWNLOAD JSON ─────────────────────────────────────────────────────────────
+function downloadGeneratedJSON() {
+  if (!generatedData) return;
+  const blob = new Blob([JSON.stringify(generatedData, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wixer-conteudo-${generatedData.month?.replace(/\s/g,'-') || 'mes'}.json`;
+  a.click();
+}
+
+// ── FILE IMPORT ───────────────────────────────────────────────────────────────
+function handleFileImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const status = document.getElementById('import-status');
+  status.textContent = 'Lendo arquivo...';
+  status.className = 'import-status';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.posts || !Array.isArray(parsed.posts)) throw new Error('JSON inválido: campo "posts" ausente.');
+      currentData = parsed;
+      renderPosts(parsed, 'posts-container');
+      status.textContent = `✓ ${parsed.posts.length} posts carregados — ${parsed.agency || ''} ${parsed.month || ''}`;
+      status.className = 'import-status success';
+      // switch to posts tab
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-posts').classList.add('active');
+      document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    } catch(err) {
+      status.textContent = `✗ Erro: ${err.message}`;
+      status.className = 'import-status error';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Drag & drop
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const fakeEvent = { target: { files: [file] } };
+    handleFileImport(fakeEvent);
+  }
+});
+
+// ── COPY PROMPT ───────────────────────────────────────────────────────────────
+function copyPrompt() {
+  const box = document.getElementById('prompt-box');
+  const text = box.innerText.replace('COPIAR', '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = box.querySelector('.btn-copy');
+    btn.textContent = '✓ COPIADO';
+    setTimeout(() => btn.textContent = 'COPIAR', 2000);
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+renderPosts(defaultData, 'posts-container');
+</script>
+</body>
+</html>
